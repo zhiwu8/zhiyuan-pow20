@@ -1,6 +1,6 @@
 use super::*;
 use serde_json::json;
-use tokio::fs::File;
+use tokio::fs::OpenOptions;
 use tokio::io::AsyncWriteExt;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Ticker {
@@ -49,13 +49,21 @@ impl ApiClient {
             "tokenId": solution.token_id,
             "winningHash": solution.hash
         });
-        // payload存储到本地json
-         // 将payload序列化为JSON字符串
         let payload_str = serde_json::to_string(&payload)?;
-        
-        // 异步创建文件，并写入序列化后的JSON字符串
-        let mut file = File::create("solution_payload.json").await?;
+
+        // OpenOptions
+        let file = OpenOptions::new()
+            .create(true)  
+            .write(true)   
+            .append(true)  
+            .open("solution.json")
+            .await?;
+
+        // 异步
+        let mut file = file;
         file.write_all(payload_str.as_bytes()).await?;
+        
+        file.write_all(b"\n").await?;
 
         let res = self
             .post(format!("/mint/save"))
